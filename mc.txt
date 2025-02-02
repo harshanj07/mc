@@ -1,0 +1,120 @@
+//MainActivity.kt
+        val fname: EditText = findViewById(R.id.fISRTNAME)
+        val phno: EditText = findViewById(R.id.phonenumber)
+        val email: EditText = findViewById(R.id.email)
+        val password: EditText = findViewById(R.id.password)
+        val btn: Button = findViewById(R.id.button)
+        val ratingBar: RatingBar = findViewById(R.id.ratingBar)
+        val ratingInfo: TextView = findViewById(R.id.RATINGBARINFO)
+        val spinner: Spinner = findViewById(R.id.GENDER)
+        val radioGroup: RadioGroup = findViewById(R.id.radioGroup)
+
+        // Spinner setup
+        val options = resources.getStringArray(R.array.spinner_options)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+
+        // RatingBar listener
+        ratingBar.setOnRatingBarChangeListener { _, rating, _ ->
+            ratingInfo.text = when {
+                rating >= 4 -> "Good"
+                rating >= 2 -> "Bad"
+                else -> "Ugly"
+            }
+        }
+
+        // Button click listener
+        btn.setOnClickListener {
+            val nameInput = fname.text.toString().trim()
+            val phoneInput = phno.text.toString().trim()
+            val emailInput = email.text.toString().trim()
+            val passwordInput = password.text.toString().trim()
+
+            // Regex for validation
+            val nameRegex = Regex("^[a-zA-Z0-9]+$")  //
+            val phoneRegex = Regex("^[0-9]{10}$")
+            val emailRegex = Regex("^[a-zA-Z0-9._%+-]+@gmail.com$")  // Basic email format
+            val passwordRegex = Regex("^[a-zA-Z0-9]{8}$")
+
+            val selectedRadioButtonId = radioGroup.checkedRadioButtonId
+
+            // Empty field validation
+            when {
+                nameInput.isEmpty() -> {
+                    Toast.makeText(this, "Name cannot be empty.", Toast.LENGTH_SHORT).show()
+                }
+                phoneInput.isEmpty() -> {
+                    Toast.makeText(this, "Phone number cannot be empty.", Toast.LENGTH_SHORT).show()
+                }
+                emailInput.isEmpty() -> {
+                    Toast.makeText(this, "Email cannot be empty.", Toast.LENGTH_SHORT).show()
+                }
+                passwordInput.isEmpty() -> {
+                    Toast.makeText(this, "Password cannot be empty.", Toast.LENGTH_SHORT).show()
+                }
+                selectedRadioButtonId == -1 -> {
+                    Toast.makeText(this, "Please select an option.", Toast.LENGTH_SHORT).show()
+                }
+                !nameInput.matches(nameRegex) -> {
+                    Toast.makeText(this, "Invalid name. Only letters, numbers, and spaces are allowed.", Toast.LENGTH_SHORT).show()
+                }
+                !phoneInput.matches(phoneRegex) -> {
+                    Toast.makeText(this, "Invalid phone number. Must be 10 digits.", Toast.LENGTH_SHORT).show()
+                }
+                !emailInput.matches(emailRegex) -> {
+                    Toast.makeText(this, "Invalid email format.", Toast.LENGTH_SHORT).show()
+                }
+                !passwordInput.matches(passwordRegex) -> {
+                    Toast.makeText(this, "Password must be at least 6 characters long.", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    val selectedGender = spinner.selectedItem.toString()
+                    val selectedRadioButton = findViewById<RadioButton>(selectedRadioButtonId)
+                    val radioButtonValue = selectedRadioButton.text.toString()
+
+                    // Proceed to next activity
+                    val intent = Intent(this, SecondActivity::class.java).apply {
+                        putExtra("USER_NAME", nameInput)
+                        putExtra("USER_PHONE", phoneInput)
+                        putExtra("USER_EMAIL", emailInput)
+                        putExtra("USER_PASSWORD", passwordInput)
+                        putExtra("USER_GENDER", selectedGender)
+                        putExtra("USER_RADIO", radioButtonValue)
+                    }
+                    startActivity(intent)
+                }
+            }
+        }
+
+
+//SecondActivity.kt
+
+      // Retrieve values passed from MainActivity
+        val userName = intent.getStringExtra("USER_NAME")
+        val userPhone = intent.getStringExtra("USER_PHONE")
+        val userEmail = intent.getStringExtra("USER_EMAIL")
+        val userPassword = intent.getStringExtra("USER_PASSWORD")
+        val userGender = intent.getStringExtra("USER_GENDER")
+        val userRadio = intent.getStringExtra("USER_RADIO")
+
+        // Display user information
+        val displayTextView: TextView = findViewById(R.id.displayTextView)
+        displayTextView.text = """
+            Name: $userName
+            Phone: $userPhone
+            Email: $userEmail
+            Password: $userPassword
+            Gender: $userGender
+            Radio Selection: $userRadio
+        """.trimIndent()
+
+//string.xml
+<resources>
+    <string name="app_name">My Application</string>
+    <string-array name="spinner_options">
+        <item>One</item>
+        <item>Two</item>
+        <item>Three</item>
+    </string-array>
+</resources>
