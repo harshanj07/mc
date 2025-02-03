@@ -118,3 +118,36 @@
         <item>Three</item>
     </string-array>
 </resources>
+
+
+
+
+
+
+//MainActivity.kt // Addition of 2 numbers
+        val num1EditText = findViewById<EditText>(R.id.name) // First number input
+        val num2EditText = findViewById<EditText>(R.id.name2) // Second number input
+        val resultTextView = findViewById<TextView>(R.id.textView2) // Result display
+        val multiplyButton = findViewById<Button>(R.id.button) // Multiply button
+
+        // Button Click Listener for Multiplication
+        multiplyButton.setOnClickListener {
+            val num1Str = num1EditText.text.toString().trim()
+            val num2Str = num2EditText.text.toString().trim()
+
+            if (num1Str.isEmpty() || num2Str.isEmpty()) {
+                Toast.makeText(this, "Please enter both numbers", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val num1 = num1Str.toInt()
+            val num2 = num2Str.toFloat()
+
+            if (num1 == null || num2 == null) {
+                Toast.makeText(this, "Invalid input. Enter valid numbers.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val result = num1 * num2
+            resultTextView.text = "Result: $result"
+        }
