@@ -1,153 +1,126 @@
-//MainActivity.kt
-        val fname: EditText = findViewById(R.id.fISRTNAME)
-        val phno: EditText = findViewById(R.id.phonenumber)
-        val email: EditText = findViewById(R.id.email)
-        val password: EditText = findViewById(R.id.password)
-        val btn: Button = findViewById(R.id.button)
-        val ratingBar: RatingBar = findViewById(R.id.ratingBar)
-        val ratingInfo: TextView = findViewById(R.id.RATINGBARINFO)
-        val spinner: Spinner = findViewById(R.id.GENDER)
-        val radioGroup: RadioGroup = findViewById(R.id.radioGroup)
+//jugs
+from collections import deque
 
-        // Spinner setup
-        val options = resources.getStringArray(R.array.spinner_options)
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
+def is_goal(state, target):
+    """Check if the state meets the goal condition."""
+    return state[0] == target or state[1] == target
 
-        // RatingBar listener
-        ratingBar.setOnRatingBarChangeListener { _, rating, _ ->
-            ratingInfo.text = when {
-                rating >= 4 -> "Good"
-                rating >= 2 -> "Bad"
-                else -> "Ugly"
-            }
-        }
+def generate_next_states(state, capacity_x, capacity_y):
+    """Generate all possible valid next states from the current state."""
+    x, y = state
+    states = []
 
-        // Button click listener
-        btn.setOnClickListener {
-            val nameInput = fname.text.toString().trim()
-            val phoneInput = phno.text.toString().trim()
-            val emailInput = email.text.toString().trim()
-            val passwordInput = password.text.toString().trim()
+    # Fill Jug X
+    states.append((capacity_x, y, f"Fill X ({capacity_x}L)"))
 
-            // Regex for validation
-            val nameRegex = Regex("^[a-zA-Z0-9]+$")  //
-            val phoneRegex = Regex("^[0-9]{10}$")
-            val emailRegex = Regex("^[a-zA-Z0-9._%+-]+@gmail.com$")  // Basic email format
-            val passwordRegex = Regex("^[a-zA-Z0-9]{8}$")
+    # Fill Jug Y
+    states.append((x, capacity_y, f"Fill Y ({capacity_y}L)"))
 
-            val selectedRadioButtonId = radioGroup.checkedRadioButtonId
+    # Empty Jug X
+    states.append((0, y, "Empty X"))
 
-            // Empty field validation
-            when {
-                nameInput.isEmpty() -> {
-                    Toast.makeText(this, "Name cannot be empty.", Toast.LENGTH_SHORT).show()
-                }
-                phoneInput.isEmpty() -> {
-                    Toast.makeText(this, "Phone number cannot be empty.", Toast.LENGTH_SHORT).show()
-                }
-                emailInput.isEmpty() -> {
-                    Toast.makeText(this, "Email cannot be empty.", Toast.LENGTH_SHORT).show()
-                }
-                passwordInput.isEmpty() -> {
-                    Toast.makeText(this, "Password cannot be empty.", Toast.LENGTH_SHORT).show()
-                }
-                selectedRadioButtonId == -1 -> {
-                    Toast.makeText(this, "Please select an option.", Toast.LENGTH_SHORT).show()
-                }
-                !nameInput.matches(nameRegex) -> {
-                    Toast.makeText(this, "Invalid name. Only letters, numbers, and spaces are allowed.", Toast.LENGTH_SHORT).show()
-                }
-                !phoneInput.matches(phoneRegex) -> {
-                    Toast.makeText(this, "Invalid phone number. Must be 10 digits.", Toast.LENGTH_SHORT).show()
-                }
-                !emailInput.matches(emailRegex) -> {
-                    Toast.makeText(this, "Invalid email format.", Toast.LENGTH_SHORT).show()
-                }
-                !passwordInput.matches(passwordRegex) -> {
-                    Toast.makeText(this, "Password must be at least 6 characters long.", Toast.LENGTH_SHORT).show()
-                }
-                else -> {
-                    val selectedGender = spinner.selectedItem.toString()
-                    val selectedRadioButton = findViewById<RadioButton>(selectedRadioButtonId)
-                    val radioButtonValue = selectedRadioButton.text.toString()
+    # Empty Jug Y
+    states.append((x, 0, "Empty Y"))
 
-                    // Proceed to next activity
-                    val intent = Intent(this, SecondActivity::class.java).apply {
-                        putExtra("USER_NAME", nameInput)
-                        putExtra("USER_PHONE", phoneInput)
-                        putExtra("USER_EMAIL", emailInput)
-                        putExtra("USER_PASSWORD", passwordInput)
-                        putExtra("USER_GENDER", selectedGender)
-                        putExtra("USER_RADIO", radioButtonValue)
-                    }
-                    startActivity(intent)
-                }
-            }
-        }
+    # Pour X → Y
+    pour_x_to_y = min(x, capacity_y - y)  # Max amount that can be poured
+    states.append((x - pour_x_to_y, y + pour_x_to_y, f"Pour X → Y ({pour_x_to_y}L)"))
 
+    # Pour Y → X
+    pour_y_to_x = min(y, capacity_x - x)  # Max amount that can be poured
+    states.append((x + pour_y_to_x, y - pour_y_to_x, f"Pour Y → X ({pour_y_to_x}L)"))
 
-//SecondActivity.kt
+    # Return only valid states (within jug capacity)
+    return [(nx, ny, action) for nx, ny, action in states if 0 <= nx <= capacity_x and 0 <= ny <= capacity_y]
 
-      // Retrieve values passed from MainActivity
-        val userName = intent.getStringExtra("USER_NAME")
-        val userPhone = intent.getStringExtra("USER_PHONE")
-        val userEmail = intent.getStringExtra("USER_EMAIL")
-        val userPassword = intent.getStringExtra("USER_PASSWORD")
-        val userGender = intent.getStringExtra("USER_GENDER")
-        val userRadio = intent.getStringExtra("USER_RADIO")
+def solve_water_jug(capacity_x, capacity_y, target):
+    """Find the shortest sequence of steps using BFS to measure Z liters."""
+    initial_state = (0, 0)  # Both jugs start empty
+    queue = deque([(initial_state, [])])  # Queue stores (state, path_taken)
+    visited = set()  # Track visited states
 
-        // Display user information
-        val displayTextView: TextView = findViewById(R.id.displayTextView)
-        displayTextView.text = """
-            Name: $userName
-            Phone: $userPhone
-            Email: $userEmail
-            Password: $userPassword
-            Gender: $userGender
-            Radio Selection: $userRadio
-        """.trimIndent()
+    while queue:
+        (x, y), path = queue.popleft()
 
-//string.xml
-<resources>
-    <string name="app_name">My Application</string>
-    <string-array name="spinner_options">
-        <item>One</item>
-        <item>Two</item>
-        <item>Three</item>
-    </string-array>
-</resources>
+        # If the goal is reached, return the steps
+        if is_goal((x, y), target):
+            return path + [f"Final State: ({x},{y}) ✅"]
+
+        # Track visited states
+        if (x, y) in visited:
+            continue
+        visited.add((x, y))
+
+        # Generate next valid states and add to queue
+        for nx, ny, action in generate_next_states((x, y), capacity_x, capacity_y):
+            queue.append(((nx, ny), path + [action]))
+
+    return "No solution found ❌"
+
+# Get input from user
+capacity_x = int(input("Enter capacity of Jug X: "))
+capacity_y = int(input("Enter capacity of Jug Y: "))
+target = int(input("Enter target amount (Z): "))
+
+solution = solve_water_jug(capacity_x, capacity_y, target)
+
+# Print solution
+if isinstance(solution, list):
+    print("\nSolution found:")
+    for step in solution:
+        print(step)
+else:
+    print(solution)
 
 
 
+//M&C
+from collections import deque
+class MissionariesAndCanibals: 
+    def __init__(self):
+        self.initialState=(3,3,0)
+        self.goalState = (0,0,1)
+        self.moves = [(1,0),(2,0),(1,1),(0,2),(0,1)]
+        self.visited = set()       
+    def isValid(self,state):
+        M_left, C_left, _ = state
+        M_right, C_right, _ = 3 - M_left, 3 - C_left, 1  # People on the right bank
+        return (
+            (M_left == 0 or M_left >= C_left) and  # Left bank condition
+            (M_right == 0 or M_right >= C_right)  # Right bank condition
+        )               
+    def get_valid_states(self,state):
+        valid_states=[]
+        for m,c in self.moves:          
+            if state[2] == 0:
+                new_state = (state[0] - m,state[1]-c , 1)
+            else:
+                new_state = (state[0] + m,state[1] + c , 0)
+                
+            if new_state[0] >= 0 and new_state[1] >=0 and  self.isValid(new_state):
+                valid_states.append(new_state)
+                
+        return valid_states
+    
+    def solve(self):
+        initial_state = self.initialState
+        queue = deque()
+        queue.append((initial_state , []))
+        while queue:
+            curr_state , path = queue.popleft()
+            if curr_state not in self.visited :
+                self.visited.add(curr_state)             
+                new_path = path + [curr_state]
+                            
+                if curr_state == self.goalState:
+                    return new_path
+                
+                curlist = self.get_valid_states(curr_state)
+                        
+                for neighbour in curlist:
+                    queue.append((neighbour,new_path))
+                    
+        return "no solution found"
+object = MissionariesAndCanibals()
+print(object.solve())
 
-
-
-//MainActivity.kt // Addition of 2 numbers
-        val num1EditText = findViewById<EditText>(R.id.name) // First number input
-        val num2EditText = findViewById<EditText>(R.id.name2) // Second number input
-        val resultTextView = findViewById<TextView>(R.id.textView2) // Result display
-        val multiplyButton = findViewById<Button>(R.id.button) // Multiply button
-
-        // Button Click Listener for Multiplication
-        multiplyButton.setOnClickListener {
-            val num1Str = num1EditText.text.toString().trim()
-            val num2Str = num2EditText.text.toString().trim()
-
-            if (num1Str.isEmpty() || num2Str.isEmpty()) {
-                Toast.makeText(this, "Please enter both numbers", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val num1 = num1Str.toInt()
-            val num2 = num2Str.toFloat()
-
-            if (num1 == null || num2 == null) {
-                Toast.makeText(this, "Invalid input. Enter valid numbers.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val result = num1 * num2
-            resultTextView.text = "Result: $result"
-        }
