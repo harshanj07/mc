@@ -250,18 +250,19 @@ throttle_value = calculate_throttle_control(speed_diff_value, accel_value)
 
 //rahul
 import numpy as np
-class fuzz:
+import matplotlib.pyplot as plt
+class Fuzzy:  
     def __init__(self):
-        self.ranges={
+        self.ranges ={
             "NL":[0,0,31,61],
-            "NM":[31,61,95],
+            "NM":[31,61,96],
             "NS":[61,95,127],
             "ZE":[95,127,159],
             "PS":[127,159,191],
             "PM":[159,191,223],
             "PL":[191,223,255,255],
         }
-        self.rules={
+        self.rules = {
             ("NL","ZE") : "PL",
             ("ZE","NL") : "PL",
             ("NM","ZE") : "PM",
@@ -271,74 +272,80 @@ class fuzz:
             ("ZE","NS") : "PS",
             ("ZE","NM") : "PM",
         }
-    
-    def triangularmembership(self,x,points):
-        a,b,c=points
-        if a<=x<=b:
+
+    def triangularMemberShip(self,x,points):
+        a,b,c = points
+        if a<= x <= b:
             return (x-a)/(b-a)
-        elif b<=x<=c:
+        elif b<= x <= c:
             return (c-x)/(c-b)
         else:
             return 0
-    
-    def trapezoidalmembership(self,x,points):
-        a,b,c,d =points
-        if a<x<=b:
-            return (x-a)/(b-a)
-        elif b<x<=c:
-            return 1
-        elif c<x<=d:
-            return (d-x)/(d-c)
-        elif a>=x or x>=d:
+    def trapezoidMemberShip(self,x,points):
+        a,b,c,d = points
+        if a>= x or x>=d:
             return 0
-        
+        elif a< x <=b:
+            return (x-a)/(b-a)
+        elif b< x <=c:
+            return 1
+        elif c < x <=d:
+            return (d-x) /(d-c)
+    
     def fuzzify(self,x):
-        membership ={}
-        # print(self.ranges)
+        membership = {}
         for label,points in self.ranges.items():
-            if len(points) == 3:
-                membership[label] = self.triangularmembership(x,points)
+            if len(points) ==3:
+                membership[label] = self.triangularMemberShip(x,points)
             else:
-                membership[label] = self.trapezoidalmembership(x,points)
+                membership[label] = self.trapezoidMemberShip(x,points)
         return membership
-
-    def applyrules(self,speedMembership,accelMembership):
-        output={}
+    
+    def applyRules(self,speedMembership,acclMembership):
+        output = {}
         for key,values in self.rules.items():
-            arg1,arg2= key
-            strength = min(speedMembership[arg1],accelMembership[arg2])
-            output[values]= max(output.get(values,0),strength)
+            arg1,arg2 = key
+            strength= min(speedMembership[arg1],acclMembership[arg2])
+            output[values] = max(output.get(values,0),strength)
+        # print(output)
         return output
+    
     def dePuzzify(self,ruleOutput):
         x = np.linspace(0,255,1000)
         aggregated = np.zeros_like(x,dtype=float)
         for label,strength in ruleOutput.items():
             points = self.ranges[label]
             # for 3 points
-            if len(points)==3:
-                membership = np.array([self.triangularMemberShip(xi,points) for xi in x])
-            else:
-                # for trapezoid(4 points)
-                a,b,c,d = points
-                membership = np.zeros_like(x,dtype=float)
-                for i,xi in enumerate(x):
-                    if a>= xi or xi >=d:  
-                        membership[i]=0
-                    elif a< xi <=b:
-                        membership[i] = (xi-a)/(b-a)
-                    elif b< xi <=c:
-                        membership[i] = 1
-                    elif c < xi <=d:
-                        membership[i] = (d-xi) / (d-c)
+            membership = np.array([self.triangularMemberShip(xi,points) if len(points)==3 else                                
+                                    self.trapezoidMemberShip(xi,points) for xi in x])
             membership = np.minimum(membership,strength)
             aggregated = np.maximum(aggregated,membership)
         if np.sum(aggregated) ==0:
             return 0
         return np.sum(x*aggregated)/np.sum(aggregated)
+    
+    def plot(self,title):
 
-object = fuzz()
+        x = np.linspace(0,255,1000)
+        plt.figure(figsize=(10,6))
+        for label,points in self.ranges.items():
+            y = [self.triangularMemberShip(xi,points) if len(points)==3 else
+                 self.trapezoidMemberShip(xi,points) for xi in x]
+            plt.plot(x,y,label=label)
+        plt.title(title)
+        plt.xlabel("values")
+        plt.ylabel("membership")
+        plt.legend();plt.grid();plt.show()
+
+object = Fuzzy()
 speedMembership = object.fuzzify(100)
-accelMembership = object.fuzzify(70)
+acclMembership = object.fuzzify(70)
 print(speedMembership)
-print(accelMembership)
-ruleOutput = object.applyrules(speedMembership,accelMembership)
+print(acclMembership)
+ruleOutput = object.applyRules(speedMembership,acclMembership)
+print(ruleOutput)
+throttleValue = object.dePuzzify(ruleOutput)
+print(throttleValue)
+titles = ["speed values","accl values","thottole values"]
+for title in titles:
+    object.plot(title)
